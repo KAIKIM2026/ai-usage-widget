@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+  :root {
+    --panel-w: 324px;
+    --panel-gap: 12px;
+    --shell-pad-right: 32px;
+    --shell-pad-bottom: 28px;
+    --accent-blue: #00bbfe;
+    --accent-green: #8edb89;
+    --accent-orange: #ffa603;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 692px;
+    height: 388px;
+    overflow: hidden;
+    background: transparent;
+    font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  body { color: #1a1a1a; }
+
+  .widget {
+    position: relative;
+    width: 692px;
+    height: 388px;
+    display: flex;
+    gap: var(--panel-gap);
+    padding-right: var(--shell-pad-right);
+    padding-bottom: var(--shell-pad-bottom);
+  }
+
+  .panel {
+    width: var(--panel-w);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .panel.codex-panel {
+    padding-bottom: 102px;
+  }
+
+  .titlebar,
+  .card,
+  .state-msg,
+  .footer {
+    width: var(--panel-w);
+  }
+
+  .titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 13px;
+    border-radius: 13px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+    backdrop-filter: blur(12px);
+  }
+
+  .titlebar.draggable {
+    cursor: default;
+    -webkit-app-region: drag;
+  }
+
+  .titlebar.draggable * {
+    cursor: default;
+  }
+
+  .title-left {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    -webkit-app-region: drag;
+  }
+
+  .title-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 112px;
+    -webkit-app-region: drag;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    box-shadow: 0 0 6px rgba(0,187,254,0.35);
+    flex-shrink: 0;
+  }
+
+  .dot.live { animation: blink 2.8s ease-in-out infinite; }
+  .dot.loading {
+    background: var(--accent-green);
+    box-shadow: 0 0 0 rgba(142,219,137,0.4);
+    animation: status-pulse 1.15s ease-in-out infinite;
+  }
+  .dot.error {
+    background: var(--accent-orange);
+    box-shadow: 0 0 6px rgba(255,166,3,0.45);
+    animation: none;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
+  }
+
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes status-pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(142,219,137,0.42); opacity: .92; }
+    30% { transform: scale(1.18); box-shadow: 0 0 0 4px rgba(142,219,137,0.14); opacity: 1; }
+    60% { transform: scale(0.96); box-shadow: 0 0 0 1px rgba(142,219,137,0.08); opacity: .95; }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(142,219,137,0); opacity: .92; }
+  }
+
+  .title-text {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    color: #8fa3b0;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-btns {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    min-width: 112px;
+    -webkit-app-region: drag;
+  }
+
+  .title-btns.mirror .tbtn {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .title-btns.mirror {
+    justify-content: space-between;
+  }
+
+  .title-updated {
+    font-size: 8px;
+    color: #aabcc5;
+    line-height: 1;
+    white-space: nowrap;
+    -webkit-app-region: drag;
+  }
+
+  .tbtn {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    border: none;
+    background: rgba(0,0,0,0.05);
+    color: #a0b4c0;
+    font-size: 13px;
+    cursor: default;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s ease, background .15s ease, color .15s ease, box-shadow .15s ease;
+    line-height: 1;
+    padding: 0;
+    -webkit-app-region: no-drag;
+  }
+
+  .tbtn:hover {
+    background: rgba(0,187,254,0.12);
+    color: #00a6e1;
+    transform: scale(1.12);
+    box-shadow: 0 0 8px rgba(0,187,254,0.16);
+  }
+
+  .titlebar.draggable .tbtn,
+  .titlebar.draggable .tbtn * {
+    cursor: default;
+  }
+
+  .tbtn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transform-origin: center;
+  }
+
+  .tbtn-icon.spin { animation: rotate .7s linear infinite; }
+
+  .card {
+    flex: 0 0 auto;
+    min-height: 70px;
+    border-radius: 13px;
+    padding: 12px 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: background .4s ease;
+    backdrop-filter: blur(12px);
+  }
+
+  .card.blue-card { background: linear-gradient(135deg, rgba(237,244,250,0.95) 0%, rgba(255,255,255,0.92) 100%); }
+  .card.green-card { background: linear-gradient(135deg, rgba(232,248,238,0.95) 0%, rgba(255,255,255,0.92) 100%); }
+  .card.orange-card { background: linear-gradient(135deg, rgba(255,243,224,0.95) 0%, rgba(255,255,255,0.92) 100%); }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .label {
+    font-size: 12px;
+    font-weight: 400;
+    color: #4a5a65;
+  }
+
+  .right-group {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .reset-text {
+    font-size: 9px;
+    color: #9ab0bc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 156px;
+  }
+
+  .pct {
+    font-size: 16px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: #1a1a1a;
+    white-space: nowrap;
+  }
+
+  .track {
+    height: 5px;
+    border-radius: 99px;
+    overflow: hidden;
+    background: rgba(0,0,0,0.07);
+  }
+
+  .fill {
+    height: 5px;
+    border-radius: 99px;
+    transition: width .25s ease, background .4s ease;
+  }
+
+  .fill.blue { background: var(--accent-blue); }
+  .fill.green { background: var(--accent-green); }
+  .fill.orange { background: var(--accent-orange); }
+
+  .monthly-sub,
+  .card-sub {
+    font-size: 9px;
+    color: #8fa3a0;
+  }
+
+  .monthly-sub:empty,
+  .card-sub:empty {
+    display: none;
+  }
+
+  .state-msg {
+    flex: 0 0 auto;
+    min-height: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 13px;
+    background: rgba(237,244,250,0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    color: #8fa3b0;
+    font-size: 11px;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .state-msg.compact {
+    min-height: 88px;
+  }
+
+  .state-msg a {
+    color: var(--accent-blue);
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .footer {
+    display: none;
+  }
+
+  .resize-handle {
+    position: absolute;
+    right: 18px;
+    bottom: 93px;
+    width: 34px;
+    height: 34px;
+    cursor: default;
+    -webkit-app-region: no-drag;
+    z-index: 10;
+    transition: transform .16s ease, opacity .16s ease, filter .16s ease;
+    opacity: 0.9;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.08));
+  }
+
+  .resize-handle::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-repeat: no-repeat;
+    background-position: right bottom;
+    background-size: 30px 30px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M6 24 A18 18 0 0 0 24 6' fill='none' stroke='%23ffffff' stroke-opacity='0.98' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+
+  .resize-handle:hover {
+    transform: scale(1.16);
+    opacity: 1;
+    filter: drop-shadow(0 3px 10px rgba(0,0,0,0.08)) drop-shadow(0 0 8px rgba(0, 187, 254, 0.28));
+  }
+
+  .resize-handle:hover::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='30' height='30' viewBox='0 0 30 30'%3E%3Cpath d='M6 24 A18 18 0 0 0 24 6' fill='none' stroke='%2300bbfe' stroke-opacity='0.98' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E");
+  }
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="panel codex-panel">
+    <div class="titlebar draggable">
+      <div class="title-left">
+        <div class="dot loading" id="codex-dot"></div>
+        <span class="title-text">CODEX USAGE</span>
+      </div>
+      <div class="title-btns mirror">
+        <button class="tbtn" tabindex="-1" aria-hidden="true">↻</button>
+        <button class="tbtn" tabindex="-1" aria-hidden="true">×</button>
+        <span class="title-updated" id="codex-updated"></span>
+      </div>
+    </div>
+
+    <div id="codex-state-wrap" class="state-msg"><span>Codex usage loading...</span></div>
+
+    <div class="card blue-card" id="card-codex-primary" style="display:none;">
+      <div class="card-head">
+        <span class="label">Current limit</span>
+        <div class="right-group">
+          <span class="reset-text" id="cx-primary-reset"></span>
+          <span class="pct" id="cx-primary-pct">0%</span>
+        </div>
+      </div>
+      <div class="track"><div class="fill blue" id="cx-primary-bar" style="width:0%"></div></div>
+      <div class="card-sub" id="cx-primary-sub"></div>
+    </div>
+
+    <div class="card blue-card" id="card-codex-secondary" style="display:none;">
+      <div class="card-head">
+        <span class="label">Weekly limit</span>
+        <div class="right-group">
+          <span class="reset-text" id="cx-secondary-reset"></span>
+          <span class="pct" id="cx-secondary-pct">0%</span>
+        </div>
+      </div>
+      <div class="track"><div class="fill blue" id="cx-secondary-bar" style="width:0%"></div></div>
+      <div class="card-sub" id="cx-secondary-sub"></div>
+    </div>
+
+    <div class="footer" id="codex-footer"></div>
+  </div>
+
+  <div class="panel">
+    <div class="titlebar draggable">
+      <div class="title-left">
+        <div class="dot loading" id="dot"></div>
+        <span class="title-text">CLAUDE USAGE</span>
+      </div>
+      <div class="title-btns">
+        <span class="title-updated" id="title-updated"></span>
+        <button class="tbtn" id="btn-refresh" title="Refresh"><span class="tbtn-icon" id="btn-refresh-icon">↻</span></button>
+        <button class="tbtn" id="btn-quit" title="Quit">×</button>
+      </div>
+    </div>
+
+    <div id="state-wrap" class="state-msg"><span>Loading...</span></div>
+
+    <div class="card blue-card" id="card-session" style="display:none;">
+      <div class="card-head">
+        <span class="label">Current limit</span>
+        <div class="right-group">
+          <span class="reset-text" id="s-reset"></span>
+          <span class="pct" id="s-pct">0%</span>
+        </div>
+      </div>
+      <div class="track"><div class="fill blue" id="s-bar" style="width:0%"></div></div>
+    </div>
+
+    <div class="card blue-card" id="card-weekly" style="display:none;">
+      <div class="card-head">
+        <span class="label">Weekly limit</span>
+        <div class="right-group">
+          <span class="reset-text" id="w-reset"></span>
+          <span class="pct" id="w-pct">0%</span>
+        </div>
+      </div>
+      <div class="track"><div class="fill blue" id="w-bar" style="width:0%"></div></div>
+    </div>
+
+    <div class="card blue-card" id="card-monthly" style="display:none;">
+      <div class="card-head">
+        <span class="label">Additional spend</span>
+        <div class="right-group">
+          <span class="reset-text" id="m-reset"></span>
+          <span class="pct" id="m-pct">0%</span>
+        </div>
+      </div>
+      <div class="track"><div class="fill blue" id="m-bar" style="width:0%"></div></div>
+      <div class="monthly-sub" id="m-sub"></div>
+    </div>
+
+    <div class="footer" id="footer"></div>
+  </div>
+
+  <div class="resize-handle" id="resize-handle" title="Resize"></div>
+</div>
+
+<script>
+  let isRefreshing = true
+  let refreshSource = 'initial'
+  let resizing = false
+  let resizeStartX = 0
+  let resizeTicking = false
+  let pendingDeltaX = 0
+  const updatedLabel = document.getElementById('title-updated')
+  const codexUpdatedLabel = document.getElementById('codex-updated')
+
+  function updateRefreshUI() {
+    const dot = document.getElementById('dot')
+    const codexDot = document.getElementById('codex-dot')
+    const icon = document.getElementById('btn-refresh-icon')
+
+    if (isRefreshing) {
+      dot.className = 'dot loading'
+      codexDot.className = 'dot loading'
+      if (refreshSource === 'manual') icon.classList.add('spin')
+      else icon.classList.remove('spin')
+      return
+    }
+
+    icon.classList.remove('spin')
+    if (!dot.classList.contains('error')) dot.className = 'dot live'
+    if (!codexDot.classList.contains('error')) codexDot.className = 'dot live'
+  }
+
+  function formatReset(reset) {
+    if (!reset) return ''
+    if (reset.includes('Reset')) return reset
+    return reset + ' Reset'
+  }
+
+  function formatWeeklyReset(reset) {
+    const source = String(reset || '').trim()
+    if (!source) return ''
+
+    const dayMap = {
+      sun: 0,
+      mon: 1,
+      tue: 2,
+      wed: 3,
+      thu: 4,
+      fri: 5,
+      sat: 6
+    }
+
+    const formatDateTime = (date) => {
+      const month = date.getMonth() + 1
+      const day = date.getDate()
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      return month + '.' + day + ' ' + hour + ':' + minute
+    }
+
+    const buildNextDate = (targetDay, hour, minute) => {
+      const now = new Date()
+      const next = new Date(now)
+      next.setSeconds(0, 0)
+      next.setHours(hour, minute, 0, 0)
+      let diff = targetDay - now.getDay()
+      if (diff < 0 || (diff === 0 && next <= now)) diff += 7
+      next.setDate(now.getDate() + diff)
+      return next
+    }
+
+    const dayTimeMatch = source.match(/\b(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\b[a-z]*\s*(\d{1,2}):(\d{2})/i)
+    if (dayTimeMatch) {
+      const targetDay = dayMap[dayTimeMatch[1].slice(0, 3).toLowerCase()]
+      return formatDateTime(buildNextDate(targetDay, Number(dayTimeMatch[2]), Number(dayTimeMatch[3])))
+    }
+
+    const ampmTimeMatch = source.match(/(오전|오후)\s*(\d{1,2}):(\d{2})/)
+    if (ampmTimeMatch) {
+      let hour = Number(ampmTimeMatch[2]) % 12
+      if (ampmTimeMatch[1] === '오후') hour += 12
+      return formatDateTime(buildNextDate(1, hour, Number(ampmTimeMatch[3])))
+    }
+
+    const numericMatch = source.match(/(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{1,2}):(\d{2})|(\d{1,2})[/-](\d{1,2})\s*(\d{1,2}):(\d{2})/)
+    if (numericMatch) {
+      const month = Number(numericMatch[1] || numericMatch[5])
+      const day = Number(numericMatch[2] || numericMatch[6])
+      const hour = String(Number(numericMatch[3] || numericMatch[7])).padStart(2, '0')
+      const minute = String(Number(numericMatch[4] || numericMatch[8])).padStart(2, '0')
+      return month + '.' + day + ' ' + hour + ':' + minute
+    }
+
+    return source
+  }
+
+  function formatCompactTime(timestamp) {
+    if (!timestamp) return ''
+    return new Date(timestamp).toLocaleTimeString('ko-KR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  function applyColor(cardId, barId, pct) {
+    const card = document.getElementById(cardId)
+    const bar = document.getElementById(barId)
+    card.classList.remove('blue-card', 'green-card', 'orange-card')
+    bar.classList.remove('blue', 'green', 'orange')
+    if (pct >= 80) {
+      card.classList.add('orange-card')
+      bar.classList.add('orange')
+    } else if (pct >= 50) {
+      card.classList.add('green-card')
+      bar.classList.add('green')
+    } else {
+      card.classList.add('blue-card')
+      bar.classList.add('blue')
+    }
+  }
+
+  window.claudeWidget.onRefreshState((state) => {
+    isRefreshing = Boolean(state && state.refreshing)
+    refreshSource = state && state.source ? state.source : 'manual'
+    updateRefreshUI()
+  })
+
+  document.getElementById('resize-handle').addEventListener('mousedown', (e) => {
+    resizing = true
+    resizeStartX = e.screenX
+    e.preventDefault()
+  })
+
+  window.addEventListener('mousemove', (e) => {
+    if (!resizing) return
+
+    pendingDeltaX += e.screenX - resizeStartX
+    resizeStartX = e.screenX
+
+    if (resizeTicking) return
+    resizeTicking = true
+
+    requestAnimationFrame(async () => {
+      const deltaX = pendingDeltaX
+      pendingDeltaX = 0
+      await window.claudeWidget.resizeByDelta(deltaX)
+      resizeTicking = false
+    })
+  })
+
+  window.addEventListener('mouseup', () => {
+    resizing = false
+    pendingDeltaX = 0
+  })
+
+  document.getElementById('btn-refresh').addEventListener('click', () => {
+    window.claudeWidget.refresh()
+  })
+
+  document.getElementById('btn-quit').addEventListener('click', () => window.claudeWidget.quit())
+
+  window.claudeWidget.onUsageUpdate((data) => {
+    const dot = document.getElementById('dot')
+
+    if (data.error === 'login_required') {
+      isRefreshing = false
+      document.getElementById('btn-refresh-icon').classList.remove('spin')
+      dot.className = 'dot error'
+      document.getElementById('state-wrap').style.display = 'flex'
+      document.getElementById('state-wrap').innerHTML =
+        '<span>Login required</span><a onclick="window.claudeWidget.openLogin()">Open Claude login</a>'
+      ;['card-session', 'card-weekly', 'card-monthly'].forEach((id) => {
+        document.getElementById(id).style.display = 'none'
+      })
+      return
+    }
+
+    if (data && data.error) {
+      isRefreshing = false
+      document.getElementById('btn-refresh-icon').classList.remove('spin')
+      dot.className = 'dot error'
+      document.getElementById('state-wrap').style.display = 'flex'
+      document.getElementById('state-wrap').innerHTML = '<span>Unable to read Claude usage</span>'
+      ;['card-session', 'card-weekly', 'card-monthly'].forEach((id) => {
+        document.getElementById(id).style.display = 'none'
+      })
+      return
+    }
+
+    if (!data || data.session === undefined) return
+
+    isRefreshing = false
+    updateRefreshUI()
+    document.getElementById('state-wrap').style.display = 'none'
+    ;['card-session', 'card-weekly', 'card-monthly'].forEach((id) => {
+      document.getElementById(id).style.display = 'flex'
+    })
+
+    const set = (pctId, barId, resetId, cardId, pct, reset) => {
+      document.getElementById(pctId).textContent = pct + '%'
+      document.getElementById(barId).style.width = pct + '%'
+      document.getElementById(resetId).textContent = formatReset(reset)
+      applyColor(cardId, barId, pct)
+    }
+
+    set('s-pct', 's-bar', 's-reset', 'card-session', data.session.pct, data.session.reset)
+    set('w-pct', 'w-bar', 'w-reset', 'card-weekly', data.weekly.pct, formatWeeklyReset(data.weekly.reset))
+    set('m-pct', 'm-bar', 'm-reset', 'card-monthly', data.monthly.pct, data.monthly.reset)
+
+    document.getElementById('m-sub').textContent =
+      [data.monthly.spent, data.monthly.limit].filter(Boolean).join(' / ')
+    updatedLabel.textContent = formatCompactTime(data.timestamp || Date.now())
+  })
+
+  window.claudeWidget.onCodexUsageUpdate((data) => {
+    const codexDot = document.getElementById('codex-dot')
+
+    if (!data || data.error) {
+      codexDot.className = 'dot error'
+      document.getElementById('codex-state-wrap').style.display = 'flex'
+      document.getElementById('codex-state-wrap').innerHTML = '<span>Unable to read Codex usage</span>'
+      ;['card-codex-primary', 'card-codex-secondary'].forEach((id) => {
+        document.getElementById(id).style.display = 'none'
+      })
+      return
+    }
+
+    codexDot.className = 'dot live'
+    document.getElementById('codex-state-wrap').style.display = 'none'
+    ;['card-codex-primary', 'card-codex-secondary'].forEach((id) => {
+      document.getElementById(id).style.display = 'flex'
+    })
+
+    const setRateCard = (prefix, cardId, pct, reset, sub) => {
+      document.getElementById(prefix + '-pct').textContent = pct + '%'
+      document.getElementById(prefix + '-bar').style.width = pct + '%'
+      document.getElementById(prefix + '-reset').textContent = formatReset(reset)
+      document.getElementById(prefix + '-sub').textContent = sub || ''
+      applyColor(cardId, prefix + '-bar', pct)
+    }
+
+    setRateCard('cx-primary', 'card-codex-primary', data.primary.usedPercent, data.primary.resetText, '')
+    setRateCard('cx-secondary', 'card-codex-secondary', data.secondary.usedPercent, formatWeeklyReset(data.secondary.resetAtText), '')
+
+    codexUpdatedLabel.textContent = formatCompactTime(data.timestamp || Date.now())
+  })
+
+  updateRefreshUI()
+</script>
+</body>
+</html>

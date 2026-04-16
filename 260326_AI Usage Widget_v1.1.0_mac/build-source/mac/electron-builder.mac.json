@@ -1,0 +1,19 @@
+{
+  "directories": {
+    "output": "dist/mac"
+  },
+  "mac": {
+    "category": "public.app-category.productivity",
+    "target": [
+      "dmg",
+      "zip"
+    ],
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}",
+    "darkModeSupport": true,
+    "hardenedRuntime": false,
+    "gatekeeperAssess": false
+  },
+  "dmg": {
+    "artifactName": "${productName}-${version}-mac-${arch}.${ext}"
+  }
+}
